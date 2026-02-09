@@ -1836,11 +1836,11 @@ impl Workspace {
                     {
                         // Reopening an existing workspace - restore its saved bounds
                         (Some(bounds.0), Some(display))
-                    } else if let Some((display, bounds)) =
+                    } else if let Some((_display, bounds)) =
                         persistence::read_default_window_bounds()
                     {
-                        // New or empty workspace - use the last known window bounds
-                        (Some(bounds), Some(display))
+                        // New or empty workspace - use the last known window size on primary monitor
+                        (Some(bounds), None)
                     } else {
                         // New window - let GPUI's default_bounds() handle cascading
                         (None, None)
@@ -8448,8 +8448,9 @@ pub fn open_workspace_by_id(
                 && let Some(bounds) = serialized_workspace.window_bounds.as_ref()
             {
                 (Some(bounds.0), Some(display))
-            } else if let Some((display, bounds)) = persistence::read_default_window_bounds() {
-                (Some(bounds), Some(display))
+            } else if let Some((_display, bounds)) = persistence::read_default_window_bounds() {
+                // Don't forward stale display UUID - fall back to primary monitor
+                (Some(bounds), None)
             } else {
                 (None, None)
             };
@@ -9545,15 +9546,17 @@ pub fn remote_workspace_position_from_db(
         let (window_bounds, display) = if let Some(bounds) = window_bounds_env_override() {
             (Some(WindowBounds::Windowed(bounds)), None)
         } else {
-            let restorable_bounds = serialized_workspace
+            let workspace_bounds = serialized_workspace
                 .as_ref()
                 .and_then(|workspace| {
                     Some((workspace.display?, workspace.window_bounds.map(|b| b.0)?))
-                })
-                .or_else(|| persistence::read_default_window_bounds());
+                });
 
-            if let Some((serialized_display, serialized_bounds)) = restorable_bounds {
+            if let Some((serialized_display, serialized_bounds)) = workspace_bounds {
                 (Some(serialized_bounds), Some(serialized_display))
+            } else if let Some((_display, bounds)) = persistence::read_default_window_bounds() {
+                // Don't forward stale display UUID - fall back to primary monitor
+                (Some(bounds), None)
             } else {
                 (None, None)
             }
