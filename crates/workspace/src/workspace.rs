@@ -9546,11 +9546,9 @@ pub fn remote_workspace_position_from_db(
         let (window_bounds, display) = if let Some(bounds) = window_bounds_env_override() {
             (Some(WindowBounds::Windowed(bounds)), None)
         } else {
-            let workspace_bounds = serialized_workspace
-                .as_ref()
-                .and_then(|workspace| {
-                    Some((workspace.display?, workspace.window_bounds.map(|b| b.0)?))
-                });
+            let workspace_bounds = serialized_workspace.as_ref().and_then(|workspace| {
+                Some((workspace.display?, workspace.window_bounds.map(|b| b.0)?))
+            });
 
             if let Some((serialized_display, serialized_bounds)) = workspace_bounds {
                 (Some(serialized_bounds), Some(serialized_display))
